@@ -2,13 +2,15 @@ package main
 
 import (
 	http2 "FeatureFlags/internal/transport/http"
-	"fmt"
+	"log"
 	"net/http"
 )
 
 func main() {
 	http.HandleFunc("/auth/login", http2.LoginHandler)
+	log.Println("Запуск Feature Flags API на порту 8080...")
 
-	fmt.Println("running on port 8080")
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Критическая ошибка сервера: %v", err)
+	}
 }
