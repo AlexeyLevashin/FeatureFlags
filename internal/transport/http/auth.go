@@ -11,8 +11,8 @@ import (
 
 type MyClaims struct {
 	jwt.RegisteredClaims
-	UserId string `json:"user_id"`
-	Email  string `json:"email"`
+	Id    string `json:"user_id"`
+	Email string `json:"email"`
 }
 
 type LoginRequest struct {
@@ -29,8 +29,8 @@ func GenerateToken(user domain.User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},
-		UserId: user.UserId,
-		Email:  user.Email,
+		Id:    user.Id,
+		Email: user.Email,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, myClaims)
 	tokenString, err := token.SignedString([]byte("secret"))
@@ -42,9 +42,9 @@ func GenerateToken(user domain.User) (string, error) {
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	user := domain.User{
-		UserId: "1",
-		Email:  "test@test.com",
-		Name:   "Test User",
+		Id:    "1",
+		Email: "test@test.com",
+		Name:  "Test User",
 	}
 	tokenString, err := GenerateToken(user)
 	if err != nil {
