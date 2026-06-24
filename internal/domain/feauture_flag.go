@@ -12,7 +12,7 @@ const (
 )
 
 type FeatureFlag struct {
-	ID          string    `json:"id" db:"id"`
+	Id          string    `json:"id" db:"id"`
 	Name        string    `json:"name" db:"name"`
 	Description string    `json:"description" db:"description"`
 	Status      string    `json:"status" db:"status"`
