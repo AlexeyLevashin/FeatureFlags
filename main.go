@@ -1,7 +1,7 @@
 package main
 
 import (
-	"feature-flags/handlers"
+	"FeatureFlags/handlers"
 	"fmt"
 	"net/http"
 )
