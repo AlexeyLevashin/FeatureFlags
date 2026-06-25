@@ -12,12 +12,6 @@ type AuthRepository interface {
 	FindByEmail(email string) (domain.User, error)
 }
 
-type MyClaims struct {
-	jwt.RegisteredClaims
-	Id    string `json:"user_id"`
-	Email string `json:"email"`
-}
-
 type AuthService struct {
 	repo AuthRepository
 }
@@ -43,12 +37,13 @@ func (s *AuthService) Login(email string, password string) (string, error) {
 }
 
 func generateToken(user domain.User) (string, error) {
-	myClaims := MyClaims{
+	myClaims := domain.MyClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},
 		Id:    user.Id,
 		Email: user.Email,
+		Name:  user.Name,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, myClaims)
 	tokenString, err := token.SignedString([]byte("secret"))
