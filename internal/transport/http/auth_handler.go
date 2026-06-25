@@ -1,19 +1,10 @@
 package handlers
 
 import (
-	"FeatureFlags/internal/domain"
+	"FeatureFlags/internal/service"
 	"encoding/json"
 	"net/http"
-	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
-
-type MyClaims struct {
-	jwt.RegisteredClaims
-	Id    string `json:"user_id"`
-	Email string `json:"email"`
-}
 
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -24,8 +15,11 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+type AuthService interface {
+	Login(email string, password string) (string, error)
+}
 type AuthHandler struct {
-	authService *service.AuthService
+	authService AuthService
 }
 
 func NewAuthHandler(s *service.AuthService) *AuthHandler {
@@ -33,31 +27,15 @@ func NewAuthHandler(s *service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	user := domain.User{
-		Id:    "1",
-		Email: "test@test.com",
-		Name:  "Test User",
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
 	}
-	tokenString, err := GenerateToken(user)
+	tokenString, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
 		return
 	}
 	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
-}
-
-func GenerateToken(user domain.User) (string, error) {
-	myClaims := MyClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
-		},
-		Id:    user.Id,
-		Email: user.Email,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, myClaims)
-	tokenString, err := token.SignedString([]byte("secret"))
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
 }
