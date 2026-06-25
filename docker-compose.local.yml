@@ -26,7 +26,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - APP_ENV=local
     env_file:
       - .env
     depends_on:
