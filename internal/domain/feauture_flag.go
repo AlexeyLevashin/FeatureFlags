@@ -20,8 +20,8 @@ type FeatureFlag struct {
 	Description string          `json:"description" db:"description"`
 	Status      FlagStatus      `json:"status" db:"status"`
 	Environment EnvironmentType `json:"environment" db:"environment"`
-	OwnerUserID int             `json:"ownerUserId,omitempty" db:"owner_user_id"`
-	OwnerTeamID int             `json:"ownerTeamId,omitempty" db:"owner_team_id"`
+	OwnerUserId int             `json:"ownerUserId,omitempty" db:"owner_user_id"`
+	OwnerTeamId int             `json:"ownerTeamId,omitempty" db:"owner_team_id"`
 	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updatedAt" db:"updated_at"`
 }
