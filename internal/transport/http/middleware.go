@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"FeatureFlags/internal/domain"
 	"context"
 	"net/http"
 	"strings"
@@ -20,7 +21,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		parsedToken, err := jwt.ParseWithClaims(token, &MyClaims{}, func(token *jwt.Token) (interface{}, error) {
+		parsedToken, err := jwt.ParseWithClaims(token, &domain.MyClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte("secret"), nil // нужно вынести в env
 		})
 
@@ -29,7 +30,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, ok := parsedToken.Claims.(*MyClaims)
+		claims, ok := parsedToken.Claims.(*domain.MyClaims)
 		if !ok {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
