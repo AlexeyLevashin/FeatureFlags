@@ -1,4 +1,4 @@
-package http
+package handlers
 
 import (
 	"FeatureFlags/internal/domain"
@@ -24,6 +24,28 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+type AuthHandler struct {
+	authService *service.AuthService
+}
+
+func NewAuthHandler(s *service.AuthService) *AuthHandler {
+	return &AuthHandler{authService: s}
+}
+
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	user := domain.User{
+		Id:    "1",
+		Email: "test@test.com",
+		Name:  "Test User",
+	}
+	tokenString, err := GenerateToken(user)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
+}
+
 func GenerateToken(user domain.User) (string, error) {
 	myClaims := MyClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -38,18 +60,4 @@ func GenerateToken(user domain.User) (string, error) {
 		return "", err
 	}
 	return tokenString, nil
-}
-
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	user := domain.User{
-		Id:    "1",
-		Email: "test@test.com",
-		Name:  "Test User",
-	}
-	tokenString, err := GenerateToken(user)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
 }
