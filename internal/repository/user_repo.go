@@ -1,11 +1,26 @@
 package repository
 
-import "FeatureFlags/internal/domain"
+import (
+	"FeatureFlags/internal/domain"
 
-type UserRepository struct{}
+	"github.com/jmoiron/sqlx"
+)
 
-// func NewUserRepository() *UserRepository {}
+type UserRepository struct {
+	db *sqlx.DB
+}
+
+func NewUserRepository(db *sqlx.DB) *UserRepository {
+	return &UserRepository{db: db}
+}
 
 func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
-	return domain.User{}, nil
+	user := domain.User{}
+	err := r.db.Get(&user,
+		"SELECT * FROM users WHERE email = $1",
+		email)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
 }
