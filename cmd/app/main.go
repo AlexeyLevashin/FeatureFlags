@@ -27,8 +27,9 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	flagRepo := repository.NewFlagRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	flagService := service.NewFlagService(flagRepo)
 	authHandler := handlers.NewAuthHandler(authService)
-	flagHandler := handlers.NewFlagHandler(flagRepo)
+	flagHandler := handlers.NewFlagHandler(flagService)
 	//userRepo := repository.NewFlagRepository(&db)
 
 	http.HandleFunc("/auth/login", authHandler.Login)
