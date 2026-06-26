@@ -7,9 +7,9 @@ import (
 )
 
 type Config struct {
-	Env  string `env:"APP_ENV" env-default:"local"`
-	Port string `env:"PORT" env-default:"8080"`
-
+	Env         string `env:"APP_ENV" env-default:"local"`
+	Port        string `env:"PORT" env-default:"8080"`
+	JWTSecret   string `env:"JWT_SECRET"`
 	DatabaseDSN string `env:"DATABASE_URL" env-required:"true"`
 }
 
