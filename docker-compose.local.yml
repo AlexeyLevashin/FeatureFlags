@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    container_name: sv_flags_db
+    environment:
+      POSTGRES_PASSWORD: smartway123
+      POSTGRES_DB: FeatureFlags
+      POSTGRES_USER: user
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: sv_flags_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=local
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - backend
+
+
+volumes:
+  pgdata:
+
+networks:
+  backend:

@@ -1,6 +1,12 @@
 package domain
 
-import "time"
+import (
+	"context"
+	"time"
+)
+
+type FlagStatus string
+type EnvironmentType string
 
 const (
 	StatusEnabled  = "enabled"
@@ -12,13 +18,18 @@ const (
 )
 
 type FeatureFlag struct {
-	Id          string    `json:"id" db:"id"`
-	Name        string    `json:"name" db:"name"`
-	Description string    `json:"description" db:"description"`
-	Status      string    `json:"status" db:"status"`
-	Environment string    `json:"environment" db:"environment"`
-	OwnerUserID *string   `json:"ownerUserId,omitempty" db:"owner_user_id"`
-	OwnerTeamID *string   `json:"ownerTeamId,omitempty" db:"owner_team_id"`
-	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt   time.Time `json:"updatedAt" db:"updated_at"`
+	Id          int             `json:"id" db:"id"`
+	Name        string          `json:"name" db:"name"`
+	Description string          `json:"description" db:"description"`
+	Status      FlagStatus      `json:"status" db:"status"`
+	Environment EnvironmentType `json:"environment" db:"environment"`
+	OwnerUserId int             `json:"ownerUserId" db:"owner_user_id"`
+	OwnerTeamId int             `json:"ownerTeamId" db:"owner_team_id"`
+	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
+	UpdatedAt   time.Time       `json:"updatedAt" db:"updated_at"`
+}
+
+type FlagRepository interface {
+	Create(ctx context.Context, flag *FeatureFlag) error
+	GetByID(ctx context.Context, id string) (*FeatureFlag, error)
 }

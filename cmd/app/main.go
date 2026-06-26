@@ -1,18 +1,35 @@
 package main
 
 import (
+	"FeatureFlags/internal/config"
 	"FeatureFlags/internal/repository"
 	"FeatureFlags/internal/service"
 	"FeatureFlags/internal/transport/http"
+	pkgPostgres "FeatureFlags/pkg/postgres"
 	"log"
 	"net/http"
 )
 
 func main() {
+	cfg := config.LoadConfig()
+
+	db, err := pkgPostgres.New(cfg.DatabaseDSN)
+
+	if err != nil {
+		log.Fatalf("Не удалось запустить БД: %v", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Ошибка при закрытии соединения с БД: %v", err)
+		}
+	}()
+
 	// userRepo := repository.NewUserRepository(db)
 	userRepo := repository.UserRepository{}
 	authService := service.NewAuthService(&userRepo)
 	authHandler := handlers.NewAuthHandler(authService)
+
+	//userRepo := repository.NewFlagRepository(&db)
 
 	http.HandleFunc("/auth/login", authHandler.Login)
 	log.Println("Запуск Feature Flags API на порту 8080...")
