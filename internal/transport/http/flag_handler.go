@@ -33,5 +33,5 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Ошибка при получении списка флагов", http.StatusInternalServerError)
 	}
-	json.NewEncoder(w).Encode(flags)
+	_ = json.NewEncoder(w).Encode(flags)
 }
