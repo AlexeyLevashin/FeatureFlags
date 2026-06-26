@@ -24,9 +24,8 @@ func main() {
 		}
 	}()
 
-	// userRepo := repository.NewUserRepository(db)
-	userRepo := repository.UserRepository{}
-	authService := service.NewAuthService(&userRepo)
+	userRepo := repository.NewUserRepository(db)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	//userRepo := repository.NewFlagRepository(&db)
