@@ -1,11 +1,15 @@
 package repository
 
 import (
-	"FeatureFlags/internal/domain"
-	"context"
+	"github.com/jmoiron/sqlx"
 )
 
-type FlagRepository interface {
-	Create(ctx context.Context, flag *domain.FeatureFlag) error
-	GetByID(ctx context.Context, id string) (*domain.FeatureFlag, error)
+type FlagRepo struct {
+	db *sqlx.DB
 }
+
+func NewFlagRepository(db *sqlx.DB) *FlagRepo {
+	return &FlagRepo{db: db}
+}
+
+//func Create

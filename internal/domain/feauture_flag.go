@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type FlagStatus string
 type EnvironmentType string
@@ -24,4 +27,9 @@ type FeatureFlag struct {
 	OwnerTeamId int             `json:"ownerTeamId,omitempty" db:"owner_team_id"`
 	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updatedAt" db:"updated_at"`
+}
+
+type FlagRepository interface {
+	Create(ctx context.Context, flag *FeatureFlag) error
+	GetByID(ctx context.Context, id string) (*FeatureFlag, error)
 }
