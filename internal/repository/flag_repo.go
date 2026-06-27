@@ -17,7 +17,7 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 
 func (repo FlagRepo) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, error) {
 	flags := []domain.FeatureFlag{}
-	query := "SELECT * FROM feature_flags WHERE 1=1"
+	query := "SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE 1=1"
 	args := []interface{}{}
 	i := 1
 	if filter.Search != "" {
@@ -42,4 +42,14 @@ func (repo FlagRepo) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, err
 	return flags, nil
 }
 
+func (repo FlagRepo) GetById(id int) (domain.FeatureFlag, error) {
+	flag := domain.FeatureFlag{}
+	err := repo.db.Get(&flag,
+		"SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE id = $1",
+		id)
+	if err != nil {
+		return domain.FeatureFlag{}, err
+	}
+	return flag, nil
+}
 //func Create
