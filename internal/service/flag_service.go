@@ -6,6 +6,7 @@ import (
 
 type FlagRepository interface {
 	GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, error)
+	GetById(id int) (domain.FeatureFlag, error)
 }
 
 type FlagService struct {
@@ -22,6 +23,14 @@ func (f FlagService) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, err
 		return []domain.FeatureFlag{}, err
 	}
 	return flags, nil
+}
+
+func (f FlagService) GetById(id int) (domain.FeatureFlag, error) {
+	flag, err := f.repo.GetById(id)
+	if err != nil {
+		return domain.FeatureFlag{}, err
+	}
+	return flag, nil
 }
 
 /*type FlagService interface {
