@@ -34,7 +34,6 @@ func main() {
 
 	http.HandleFunc("/auth/login", authHandler.Login)
 	http.HandleFunc("/flags", flagHandler.GetAllFlags)
-	http.HandleFunc("/flags/{id}", flagHandler.GetFlagById)
 	log.Println("Запуск Feature Flags API на порту 8080...")
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {

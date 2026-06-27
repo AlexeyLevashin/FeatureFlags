@@ -42,15 +42,4 @@ func (repo FlagRepo) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, err
 	return flags, nil
 }
 
-func (repo FlagRepo) GetById(id int) (domain.FeatureFlag, error) {
-	flag := domain.FeatureFlag{}
-	err := repo.db.Get(&flag,
-		"SELECT * FROM feature_flags WHERE id = $1",
-		id)
-	if err != nil {
-		return domain.FeatureFlag{}, err
-	}
-	return flag, nil
-}
-
 //func Create
