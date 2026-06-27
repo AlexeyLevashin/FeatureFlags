@@ -35,7 +35,7 @@ func (f FlagService) GetById(id int) (dto.FlagResponse, error) {
 	flag, err := f.repo.GetById(id)
 	if err != nil {
 		return dto.FlagResponse{}, err
-	}
+	} 
 	return toFlagResponse(flag), nil
 }
 
@@ -51,7 +51,6 @@ func toFlagResponse(flag domain.FeatureFlag) dto.FlagResponse {
 		UpdatedAt:   flag.UpdatedAt.Format(time.RFC3339),
 	}
 }
-
 /*type FlagService interface {
 	CreateFlag(ctx context.Context, flag *domain.FeatureFlag) error
 }

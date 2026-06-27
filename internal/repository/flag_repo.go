@@ -52,5 +52,4 @@ func (repo FlagRepo) GetById(id int) (domain.FeatureFlag, error) {
 	}
 	return flag, nil
 }
-
 //func Create
