@@ -9,6 +9,7 @@ CREATE TABLE users(
     name VARCHAR(255) NOT NULL,
     surname VARCHAR(255) NOT NULL,
     team_id INT NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
 
     CONSTRAINT fk_users_teams
         FOREIGN KEY(team_id)

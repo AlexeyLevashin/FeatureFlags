@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthRepository interface {
@@ -13,11 +14,12 @@ type AuthRepository interface {
 }
 
 type AuthService struct {
-	repo AuthRepository
+	repo      AuthRepository
+	jwtSecret string
 }
 
-func NewAuthService(repo AuthRepository) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(repo AuthRepository, jwtSecret string) *AuthService {
+	return &AuthService{repo: repo, jwtSecret: jwtSecret}
 }
 
 func (s *AuthService) Login(email string, password string) (string, error) {
@@ -29,24 +31,24 @@ func (s *AuthService) Login(email string, password string) (string, error) {
 	if err != nil {
 		return "Неверный email или пароль!", err
 	}
-	token, err := generateToken(user)
+	token, err := generateToken(user, s.jwtSecret)
 	if err != nil {
 		return "", err
 	}
 	return token, nil
 }
 
-func generateToken(user domain.User) (string, error) {
+func generateToken(user domain.User, secret string) (string, error) {
 	myClaims := domain.MyClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},
-		Id:    user.Id,
-		Email: user.Email,
-		Name:  user.Name,
+		Id:     user.Id,
+		Email:  user.Email,
+		TeamId: user.TeamId,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, myClaims)
-	tokenString, err := token.SignedString([]byte("secret"))
+	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
 		return "", err
 	}
@@ -54,9 +56,8 @@ func generateToken(user domain.User) (string, error) {
 }
 
 func checkPassword(user domain.User, password string) error {
-	// err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	// if err != nil {
-	if user.Password != password {
+	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
 		return errors.New("Неверный пароль")
 	}
 	return nil
