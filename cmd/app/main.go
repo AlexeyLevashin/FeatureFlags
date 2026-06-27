@@ -25,12 +25,15 @@ func main() {
 	}()
 
 	userRepo := repository.NewUserRepository(db)
+	flagRepo := repository.NewFlagRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	flagService := service.NewFlagService(flagRepo)
 	authHandler := handlers.NewAuthHandler(authService)
-
+	flagHandler := handlers.NewFlagHandler(flagService)
 	//userRepo := repository.NewFlagRepository(&db)
 
 	http.HandleFunc("/auth/login", authHandler.Login)
+	http.HandleFunc("/flags", flagHandler.GetAllFlags)
 	log.Println("Запуск Feature Flags API на порту 8080...")
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
