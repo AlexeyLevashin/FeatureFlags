@@ -2,6 +2,8 @@ package repository
 
 import (
 	"FeatureFlags/internal/domain"
+	"context"
+	_ "embed"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -23,4 +25,18 @@ func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
 		return domain.User{}, err
 	}
 	return user, nil
+}
+
+//go:embed queries/user/check_user_exists.sql
+var CheckUserExists string
+
+func (r *UserRepository) CheckExists(ctx context.Context, userId int) (bool, error) {
+	var exists bool
+
+	err := r.db.GetContext(ctx, &exists, CheckUserExists, userId)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

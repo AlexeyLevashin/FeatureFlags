@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM teams WHERE id = $1);
