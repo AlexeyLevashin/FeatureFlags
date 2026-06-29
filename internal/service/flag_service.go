@@ -13,6 +13,7 @@ type FlagRepository interface {
 	GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, error)
 	GetById(id int) (domain.FeatureFlag, error)
 	Create(ctx context.Context, featureFlag *domain.FeatureFlag) (int, error)
+	UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error
 }
 
 type UserRepository interface {
@@ -70,12 +71,12 @@ func toFlagResponse(flag domain.FeatureFlag) dto.FlagResponse {
 	}
 }
 
-func (f *FlagService) Create(ctx context.Context, request dto.CreateFlagRequest, ownerUserId int, ownerTeamId int) (int, error) {
-	if request.Status != domain.StatusEnabled && request.Status != domain.StatusDisabled {
+func (f *FlagService) Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error) {
+	if !request.Status.IsValid() {
 		return 0, errors.New("недопустимый статус флага")
 	}
 
-	if request.Environment != domain.EnvDev && request.Environment != domain.EnvStag && request.Environment != domain.EnvProd {
+	if !request.Environment.IsValid() {
 		return 0, errors.New("недопустимое окружение флага")
 	}
 
@@ -89,7 +90,7 @@ func (f *FlagService) Create(ctx context.Context, request dto.CreateFlagRequest,
 		return 0, errors.New("команда не найдена")
 	}
 
-	flagDb := createFlagRequestToDomain(request)
+	flagDb := saveFlagRequestToDomain(request)
 	flagDb.OwnerUserId = ownerUserId
 	flagDb.OwnerTeamId = ownerTeamId
 	flagId, err := f.flagRepo.Create(ctx, flagDb)
@@ -100,11 +101,49 @@ func (f *FlagService) Create(ctx context.Context, request dto.CreateFlagRequest,
 	return flagId, nil
 }
 
-func createFlagRequestToDomain(request dto.CreateFlagRequest) *domain.FeatureFlag {
+func saveFlagRequestToDomain(request dto.SaveFlagRequest) *domain.FeatureFlag {
 	return &domain.FeatureFlag{
 		Name:        request.Name,
 		Description: request.Description,
 		Status:      request.Status,
 		Environment: request.Environment,
 	}
+}
+
+func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error {
+	if !request.Status.IsValid() {
+		return errors.New("недопустимый статус флага")
+	}
+
+	if !request.Environment.IsValid() {
+		return errors.New("недопустимое окружение флага")
+	}
+
+	existingFlag, err := f.flagRepo.GetById(flagId)
+	if err != nil {
+		return errors.New("флаг не найден")
+	}
+
+	if existingFlag.OwnerTeamId != ownerTeamId {
+		return errors.New("редактирование флагов других команд запрещено")
+	}
+
+	checkUserExists, err := f.userRepo.CheckExists(ctx, ownerUserId)
+	if err != nil || !checkUserExists {
+		return errors.New("пользователь не найден")
+	}
+
+	checkTeamExists, err := f.teamRepo.CheckExists(ctx, ownerTeamId)
+	if err != nil || !checkTeamExists {
+		return errors.New("команда не найдена")
+	}
+
+	flagDb := saveFlagRequestToDomain(request)
+
+	err = f.flagRepo.UpdateFlagById(ctx, flagId, flagDb)
+	if err != nil {
+		return fmt.Errorf("ошибка редактирования флага: %w", err)
+	}
+
+	return nil
 }

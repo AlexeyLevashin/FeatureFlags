@@ -3,6 +3,7 @@ package repository
 import (
 	"FeatureFlags/internal/domain"
 	"context"
+	"errors"
 
 	"fmt"
 
@@ -68,4 +69,25 @@ func (repo *FlagRepo) Create(ctx context.Context, featureFlag *domain.FeatureFla
 	}
 
 	return featureFlagId, nil
+}
+
+//go:embed queries/feature_flag/update_feature_flag.sql
+var updateFeatureFlagQuery string
+
+func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error {
+	result, err := repo.db.ExecContext(ctx, updateFeatureFlagQuery, featureFlag.Name, featureFlag.Description, featureFlag.Status, featureFlag.Environment, flagId)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("фича-флаг не найден")
+	}
+
+	return nil
 }
