@@ -19,3 +19,7 @@ type SaveFlagRequest struct {
 	Status      domain.FlagStatus      `json:"status"`
 	Environment domain.EnvironmentType `json:"environment"`
 }
+
+type UpdateFlagStatusRequest struct {
+	Status domain.FlagStatus `json:"status"`
+}

@@ -11,9 +11,10 @@ import (
 
 type FlagService interface {
 	GetAll(filter domain.FlagFilter) ([]dto.FlagResponse, error)
-	GetById(id int) (dto.FlagResponse, error)
+	GetById(ctx context.Context, id int) (dto.FlagResponse, error)
 	Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error)
 	UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error
+	UpdateFlagStatusById(ctx context.Context, flagId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error
 }
 
 type FlagHandler struct {
@@ -90,7 +91,7 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	flag, err := h.service.GetById(id)
+	flag, err := h.service.GetById(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Ошибка при получении флага по id", http.StatusInternalServerError)
 		return
@@ -103,16 +104,16 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 // @Description Редактирует уже существующий фича-флаг
 // @Tags flags
 // @Accept json
-// @Produce json
+// @Param id path int true "ID флага"
 // @Param request body dto.SaveFlagRequest true "Данные нового флага"
 // @Security ApiKeyAuth
-// @Router /flags [post]
+// @Router /flags/{id} [put]
 func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 	var request dto.SaveFlagRequest
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusInternalServerError)
+		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
 		return
 	}
 
@@ -128,6 +129,44 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// UpdateFlagStatusById UpdateFlagStatus обновляет статус фича-флага
+// @Summary Изменить статус фича-флаг
+// @Description Редактирует уже существующий фича-флаг
+// @Tags flags
+// @Accept json
+// @Param id path int true "ID флага"
+// @Param request body dto.UpdateFlagStatusRequest true "Новый статус"
+// @Security ApiKeyAuth
+// @Router /flags/{id}/status [patch]
+func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Request) {
+	var request dto.UpdateFlagStatusRequest
+	idStr := r.PathValue("id")
+	id, er := strconv.Atoi(idStr)
+	if er != nil {
+		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		return
+	}
+
+	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	if !ok {
+		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		return
+	}
+
+	err := h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

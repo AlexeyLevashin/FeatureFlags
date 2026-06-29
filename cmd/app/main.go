@@ -48,8 +48,12 @@ func main() {
 
 	authMiddleware := handlers.AuthMiddleware(cfg.JWTSecret)
 	protectedCreateFlag := authMiddleware(http.HandlerFunc(flagHandler.CreateFlag))
+	protectedUpdateFlagById := authMiddleware(http.HandlerFunc(flagHandler.UpdateFlagById))
+	protectedUpdateFlagStatusById := authMiddleware(http.HandlerFunc(flagHandler.UpdateFlagStatusById))
 
 	mux.Handle("POST /flags", protectedCreateFlag)
+	mux.Handle("PUT /flags/{id}", protectedUpdateFlagById)
+	mux.Handle("PATCH /flags/{id}/status", protectedUpdateFlagStatusById)
 	//todo повесить авторизацию на запросы(как на create)
 	mux.HandleFunc("GET /flags", flagHandler.GetAllFlags)
 	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)

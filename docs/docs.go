@@ -39,20 +39,7 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.LoginResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Неверный email или пароль",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
+                "responses": {}
             }
         },
         "/flags": {
@@ -85,23 +72,7 @@ const docTemplate = `{
                         "in": "query"
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.FlagResponse"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка при получении списка флагов",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
+                "responses": {}
             },
             "post": {
                 "security": [
@@ -127,38 +98,88 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateFlagRequest"
+                            "$ref": "#/definitions/dto.SaveFlagRequest"
                         }
                     }
                 ],
-                "responses": {
-                    "201": {
-                        "description": "Возвращает ID созданного флага",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
-                            }
-                        }
+                "responses": {}
+            }
+        },
+        "/flags/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Редактирует уже существующий фича-флаг",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Редактировать фича-флаг",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID флага",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     },
-                    "400": {
-                        "description": "Неверный формат запроса",
+                    {
+                        "description": "Данные нового флага",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/dto.SaveFlagRequest"
                         }
                     }
-                }
+                ],
+                "responses": {}
+            }
+        },
+        "/flags/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Редактирует уже существующий фича-флаг",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flags"
+                ],
+                "summary": "Изменить статус фича-флаг",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID флага",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый статус",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateFlagStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {}
             }
         }
     },
     "definitions": {
-        "dto.CreateFlagRequest": {
+        "dto.SaveFlagRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -175,31 +196,10 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.FlagResponse": {
+        "dto.UpdateFlagStatusRequest": {
             "type": "object",
             "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "environment": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "ownerTeamId": {
-                    "type": "integer"
-                },
-                "ownerUserId": {
-                    "type": "integer"
-                },
                 "status": {
-                    "type": "string"
-                },
-                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -211,14 +211,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.LoginResponse": {
-            "type": "object",
-            "properties": {
-                "token": {
                     "type": "string"
                 }
             }
