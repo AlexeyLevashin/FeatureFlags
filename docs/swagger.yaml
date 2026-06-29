@@ -1,0 +1,146 @@
+definitions:
+  dto.CreateFlagRequest:
+    properties:
+      description:
+        type: string
+      environment:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.FlagResponse:
+    properties:
+      description:
+        type: string
+      environment:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      ownerTeamId:
+        type: integer
+      ownerUserId:
+        type: integer
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API для управления фича-флагами
+  title: Feature Flags API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Возвращает JWT токен
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.LoginResponse'
+        "401":
+          description: Неверный email или пароль
+          schema:
+            type: string
+      summary: Вход в систему
+      tags:
+      - auth
+  /flags:
+    get:
+      description: Возвращает массив фича-флагов с возможностью фильтрации
+      parameters:
+      - description: Поиск по имени
+        in: query
+        name: search
+        type: string
+      - description: Фильтр по окружению (dev, staging, production)
+        in: query
+        name: environment
+        type: string
+      - description: Фильтр по статусу (enabled, disabled)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.FlagResponse'
+            type: array
+        "500":
+          description: Ошибка при получении списка флагов
+          schema:
+            type: string
+      summary: Получить список всех флагов
+      tags:
+      - flags
+    post:
+      consumes:
+      - application/json
+      description: Создает новый фича-флаг и привязывает его к создателю и команде
+      parameters:
+      - description: Данные нового флага
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateFlagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Возвращает ID созданного флага
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверный формат запроса
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Создать новый флаг
+      tags:
+      - flags
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

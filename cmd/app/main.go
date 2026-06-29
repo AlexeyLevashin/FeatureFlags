@@ -4,12 +4,22 @@ import (
 	"FeatureFlags/internal/config"
 	"FeatureFlags/internal/repository"
 	"FeatureFlags/internal/service"
-	"FeatureFlags/internal/transport/http"
+	"FeatureFlags/internal/transport/handlers"
 	pkgPostgres "FeatureFlags/pkg/postgres"
 	"log"
 	"net/http"
+
+	_ "FeatureFlags/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title Feature Flags API
+// @version 1.0
+// @description API для управления фича-флагами
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg := config.LoadConfig()
 
@@ -26,17 +36,28 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	flagRepo := repository.NewFlagRepository(db)
+	teamRepo := repository.NewTeamRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
-	flagService := service.NewFlagService(flagRepo)
+	flagService := service.NewFlagService(flagRepo, userRepo, teamRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	flagHandler := handlers.NewFlagHandler(flagService)
-	//userRepo := repository.NewFlagRepository(&db)
 
-	http.HandleFunc("/auth/login", authHandler.Login)
-	http.HandleFunc("/flags", flagHandler.GetAllFlags)
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+
+	authMiddleware := handlers.AuthMiddleware(cfg.JWTSecret)
+	protectedCreateFlag := authMiddleware(http.HandlerFunc(flagHandler.CreateFlag))
+
+	mux.Handle("POST /flags", protectedCreateFlag)
+	//todo повесить авторизацию на запросы(как на create)
+	mux.HandleFunc("GET /flags", flagHandler.GetAllFlags)
+	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+
 	log.Println("Запуск Feature Flags API на порту 8080...")
+	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatalf("Критическая ошибка сервера: %v", err)
 	}
 }

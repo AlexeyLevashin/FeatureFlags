@@ -2,7 +2,11 @@ package repository
 
 import (
 	"FeatureFlags/internal/domain"
+	"context"
+
 	"fmt"
+
+	_ "embed"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -52,4 +56,16 @@ func (repo FlagRepo) GetById(id int) (domain.FeatureFlag, error) {
 	}
 	return flag, nil
 }
-//func Create
+
+//go:embed queries/feature_flag/create_feature_flag.sql
+var createFeatureFlagQuery string
+
+func (repo *FlagRepo) Create(ctx context.Context, featureFlag *domain.FeatureFlag) (int, error) {
+	var featureFlagId int
+	err := repo.db.QueryRowContext(ctx, createFeatureFlagQuery, featureFlag.Name, featureFlag.Description, featureFlag.Status, featureFlag.Environment, featureFlag.OwnerUserId, featureFlag.OwnerTeamId).Scan(&featureFlagId)
+	if err != nil {
+		return 0, err
+	}
+
+	return featureFlagId, nil
+}
