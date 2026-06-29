@@ -47,9 +47,9 @@ func (repo FlagRepo) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, err
 	return flags, nil
 }
 
-func (repo FlagRepo) GetById(id int) (domain.FeatureFlag, error) {
+func (repo FlagRepo) GetById(ctx context.Context, id int) (domain.FeatureFlag, error) {
 	flag := domain.FeatureFlag{}
-	err := repo.db.Get(&flag,
+	err := repo.db.GetContext(ctx, &flag,
 		"SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE id = $1",
 		id)
 	if err != nil {
@@ -86,7 +86,28 @@ func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFla
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("фича-флаг не найден")
+		return errors.New("фич-флаг не найден")
+	}
+
+	return nil
+}
+
+//go:embed queries/feature_flag/update_feature_flag_status.sql
+var updateFeatureFlagStatusQuery string
+
+func (repo *FlagRepo) UpdateFlagStatusById(ctx context.Context, flagId int, featureFlag domain.FlagStatus) error {
+	result, err := repo.db.ExecContext(ctx, updateFeatureFlagStatusQuery, featureFlag, flagId)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("фич-флаг не найден")
 	}
 
 	return nil

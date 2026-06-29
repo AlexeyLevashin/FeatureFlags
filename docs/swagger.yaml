@@ -1,5 +1,5 @@
 definitions:
-  dto.CreateFlagRequest:
+  dto.SaveFlagRequest:
     properties:
       description:
         type: string
@@ -10,23 +10,9 @@ definitions:
       status:
         type: string
     type: object
-  dto.FlagResponse:
+  dto.UpdateFlagStatusRequest:
     properties:
-      description:
-        type: string
-      environment:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      ownerTeamId:
-        type: integer
-      ownerUserId:
-        type: integer
       status:
-        type: string
-      updatedAt:
         type: string
     type: object
   handlers.LoginRequest:
@@ -34,11 +20,6 @@ definitions:
       email:
         type: string
       password:
-        type: string
-    type: object
-  handlers.LoginResponse:
-    properties:
-      token:
         type: string
     type: object
 info:
@@ -61,15 +42,7 @@ paths:
           $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handlers.LoginResponse'
-        "401":
-          description: Неверный email или пароль
-          schema:
-            type: string
+      responses: {}
       summary: Вход в систему
       tags:
       - auth
@@ -91,17 +64,7 @@ paths:
         type: string
       produces:
       - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.FlagResponse'
-            type: array
-        "500":
-          description: Ошибка при получении списка флагов
-          schema:
-            type: string
+      responses: {}
       summary: Получить список всех флагов
       tags:
       - flags
@@ -115,27 +78,59 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateFlagRequest'
+          $ref: '#/definitions/dto.SaveFlagRequest'
       produces:
       - application/json
-      responses:
-        "201":
-          description: Возвращает ID созданного флага
-          schema:
-            additionalProperties:
-              type: integer
-            type: object
-        "400":
-          description: Неверный формат запроса
-          schema:
-            type: string
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            type: string
+      responses: {}
       security:
       - ApiKeyAuth: []
       summary: Создать новый флаг
+      tags:
+      - flags
+  /flags/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Редактирует уже существующий фича-флаг
+      parameters:
+      - description: ID флага
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные нового флага
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SaveFlagRequest'
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Редактировать фича-флаг
+      tags:
+      - flags
+  /flags/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Редактирует уже существующий фича-флаг
+      parameters:
+      - description: ID флага
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новый статус
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateFlagStatusRequest'
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Изменить статус фича-флаг
       tags:
       - flags
 securityDefinitions:
