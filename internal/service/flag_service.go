@@ -117,7 +117,7 @@ func saveFlagRequestToDomain(request dto.SaveFlagRequest) *domain.FeatureFlag {
 	}
 }
 
-func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int, ownerUserId int,
+func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int,
 	ownerTeamId int, request dto.SaveFlagRequest) error {
 	if !request.Status.IsValid() {
 		return apperror.BadRequest("недопустимый статус флага")
