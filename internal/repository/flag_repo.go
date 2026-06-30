@@ -23,10 +23,13 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 	return &FlagRepo{db: db}
 }
 
+//go:embed queries/feature_flag/get_all_flags_base.sql
+var getAllFlagsQuery string
+
 func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlag, error) {
 	flags := []domain.FeatureFlag{}
 
-	query := "SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE 1=1"
+	query := getAllFlagsQuery
 	args := []interface{}{}
 	i := 1
 
@@ -57,11 +60,12 @@ func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]do
 	return flags, nil
 }
 
+//go:embed queries/feature_flag/get_flag_by_id.sql
+var getFlagByIdQuery string
+
 func (repo FlagRepo) GetById(ctx context.Context, id int) (domain.FeatureFlag, error) {
 	flag := domain.FeatureFlag{}
-	err := repo.db.GetContext(ctx, &flag,
-		"SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE id = $1",
-		id)
+	err := repo.db.GetContext(ctx, &flag, getFlagByIdQuery, id)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.FeatureFlag{}, apperror.NotFound("флаг не найден")
