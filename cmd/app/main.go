@@ -11,6 +11,7 @@ import (
 
 	_ "FeatureFlags/docs"
 
+	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -42,22 +43,27 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	flagHandler := handlers.NewFlagHandler(flagService)
 
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	r.Post("/auth/login", authHandler.Login)
 
-	authMiddleware := handlers.AuthMiddleware(cfg.JWTSecret)
-	protectedCreateFlag := authMiddleware(http.HandlerFunc(flagHandler.CreateFlag))
+	r.Group(func(r chi.Router) {
+		r.Use(handlers.AuthMiddleware(cfg.JWTSecret))
 
-	mux.Handle("POST /flags", protectedCreateFlag)
-	//todo повесить авторизацию на запросы(как на create)
-	mux.HandleFunc("GET /flags", flagHandler.GetAllFlags)
-	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+		r.Get("/me", authHandler.GetMe)
+		r.Get("/flags", flagHandler.GetAllFlags)
+		r.Get("/flags/{id}", flagHandler.GetFlagById)
+		r.Post("/flags", flagHandler.CreateFlag)
+		//r.Put("/flags/{id}", flagHandler.UpdateFlag)
+		//r.Patch("/flags/{id}/status", flagHandler.UpdateFlagStatus)
+	})
+
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	log.Println("Запуск Feature Flags API на порту 8080...")
 	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatalf("Критическая ошибка сервера: %v", err)
 	}
 }
