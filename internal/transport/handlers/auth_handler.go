@@ -4,6 +4,7 @@ import (
 	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
+	"FeatureFlags/internal/validation"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -36,11 +37,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validation.Validate.Struct(req); err != nil {
+		apperror.HandleError(w, apperror.BadRequest("Некорректные данные"))
+		return
+	}
+
 	tokenString, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
 }
@@ -58,6 +65,7 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		apperror.HandleError(w, apperror.Unauthorized("unauthorized"))
 		return
 	}
+
 	userId := claims.Id
 	user, err := h.authService.GetMe(r.Context(), userId)
 	if err != nil {
