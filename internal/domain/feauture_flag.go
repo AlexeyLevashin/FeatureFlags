@@ -17,6 +17,22 @@ const (
 	EnvProd = "production"
 )
 
+func (s FlagStatus) IsValid() bool {
+	switch s {
+	case StatusEnabled, StatusDisabled:
+		return true
+	}
+	return false
+}
+
+func (e EnvironmentType) IsValid() bool {
+	switch e {
+	case EnvDev, EnvStag, EnvProd:
+		return true
+	}
+	return false
+}
+
 type FeatureFlag struct {
 	Id          int             `json:"id" db:"id"`
 	Name        string          `json:"name" db:"name"`

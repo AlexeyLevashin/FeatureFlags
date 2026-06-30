@@ -13,9 +13,13 @@ type FlagResponse struct {
 	UpdatedAt   string `json:"updatedAt"`
 }
 
-type CreateFlagRequest struct {
+type SaveFlagRequest struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Status      domain.FlagStatus      `json:"status"`
 	Environment domain.EnvironmentType `json:"environment"`
+}
+
+type UpdateFlagStatusRequest struct {
+	Status domain.FlagStatus `json:"status"`
 }

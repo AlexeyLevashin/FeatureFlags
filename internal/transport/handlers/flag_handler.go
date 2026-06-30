@@ -11,8 +11,10 @@ import (
 
 type FlagService interface {
 	GetAll(filter domain.FlagFilter) ([]dto.FlagResponse, error)
-	GetById(id int) (dto.FlagResponse, error)
-	Create(ctx context.Context, request dto.CreateFlagRequest, ownerUserId int, ownerTeamId int) (int, error)
+	GetById(ctx context.Context, id int) (dto.FlagResponse, error)
+	Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error)
+	UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error
+	UpdateFlagStatusById(ctx context.Context, flagId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error
 }
 
 type FlagHandler struct {
@@ -29,11 +31,11 @@ func NewFlagHandler(service FlagService) *FlagHandler {
 // @Tags flags
 // @Accept json
 // @Produce json
-// @Param request body dto.CreateFlagRequest true "Данные нового флага"
+// @Param request body dto.SaveFlagRequest true "Данные нового флага"
 // @Security ApiKeyAuth
 // @Router /flags [post]
 func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
-	var request dto.CreateFlagRequest
+	var request dto.SaveFlagRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
 		return
@@ -45,7 +47,7 @@ func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flagId, err := h.service.Create(r.Context(), request, claims.Id, claims.TeamId)
+	flagId, err := h.service.Create(r.Context(), claims.Id, claims.TeamId, request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,10 +91,86 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	flag, err := h.service.GetById(id)
+	flag, err := h.service.GetById(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Ошибка при получении флага по id", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(flag)
+}
+
+// UpdateFlagById Update обновляет поля фича-флага
+// @Summary Редактировать фича-флаг
+// @Description Редактирует уже существующий фича-флаг
+// @Tags flags
+// @Accept json
+// @Param id path int true "ID флага"
+// @Param request body dto.SaveFlagRequest true "Данные нового флага"
+// @Security ApiKeyAuth
+// @Router /flags/{id} [put]
+func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
+	var request dto.SaveFlagRequest
+	idStr := r.PathValue("id")
+	id, er := strconv.Atoi(idStr)
+	if er != nil {
+		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		return
+	}
+
+	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	if !ok {
+		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		return
+	}
+
+	err := h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// UpdateFlagStatusById UpdateFlagStatus обновляет статус фича-флага
+// @Summary Изменить статус фича-флаг
+// @Description Редактирует уже существующий фича-флаг
+// @Tags flags
+// @Accept json
+// @Param id path int true "ID флага"
+// @Param request body dto.UpdateFlagStatusRequest true "Новый статус"
+// @Security ApiKeyAuth
+// @Router /flags/{id}/status [patch]
+func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Request) {
+	var request dto.UpdateFlagStatusRequest
+	idStr := r.PathValue("id")
+	id, er := strconv.Atoi(idStr)
+	if er != nil {
+		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		return
+	}
+
+	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	if !ok {
+		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		return
+	}
+
+	err := h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

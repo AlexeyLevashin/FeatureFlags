@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM feature_flags WHERE id = $1);
