@@ -1,4 +1,11 @@
 definitions:
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
   dto.SaveFlagRequest:
     properties:
       description:
@@ -13,13 +20,6 @@ definitions:
   dto.UpdateFlagStatusRequest:
     properties:
       status:
-        type: string
-    type: object
-  handlers.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
         type: string
     type: object
 info:
@@ -39,7 +39,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.LoginRequest'
+          $ref: '#/definitions/dto.LoginRequest'
       produces:
       - application/json
       responses: {}
@@ -65,6 +65,8 @@ paths:
       produces:
       - application/json
       responses: {}
+      security:
+      - ApiKeyAuth: []
       summary: Получить список всех флагов
       tags:
       - flags
@@ -88,6 +90,22 @@ paths:
       tags:
       - flags
   /flags/{id}:
+    get:
+      description: Возвращает фич-флаг по его идентификатору
+      parameters:
+      - description: ID флага
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Получить фич-флаг по id
+      tags:
+      - flags
     put:
       consumes:
       - application/json
@@ -133,6 +151,17 @@ paths:
       summary: Изменить статус фича-флаг
       tags:
       - flags
+  /me:
+    get:
+      description: Возвращает информацию о пользователе по токену из заголовка Authorization
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Получить данные текущего пользователя
+      tags:
+      - auth
 securityDefinitions:
   ApiKeyAuth:
     in: header

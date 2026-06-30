@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"context"
+	"database/sql"
 	"errors"
 
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	_ "embed"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type FlagRepo struct {
@@ -20,30 +23,37 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 	return &FlagRepo{db: db}
 }
 
-func (repo FlagRepo) GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, error) {
+func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlag, error) {
 	flags := []domain.FeatureFlag{}
+
 	query := "SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE 1=1"
 	args := []interface{}{}
 	i := 1
+
 	if filter.Search != "" {
 		query += fmt.Sprintf(" AND name ILIKE $%d", i)
 		args = append(args, "%"+filter.Search+"%")
 		i++
 	}
+
 	if filter.Environment != "" {
 		query += fmt.Sprintf(" AND environment = $%d", i)
 		args = append(args, filter.Environment)
 		i++
 	}
+
 	if filter.Status != "" {
 		query += fmt.Sprintf(" AND status = $%d", i)
 		args = append(args, filter.Status)
 		i++
 	}
-	err := repo.db.Select(&flags, query, args...)
+
+	err := repo.db.SelectContext(ctx, &flags, query, args...)
+
 	if err != nil {
 		return []domain.FeatureFlag{}, err
 	}
+
 	return flags, nil
 }
 
@@ -52,9 +62,15 @@ func (repo FlagRepo) GetById(ctx context.Context, id int) (domain.FeatureFlag, e
 	err := repo.db.GetContext(ctx, &flag,
 		"SELECT id, name, description, status, environment, owner_user_id, owner_team_id, updated_at FROM feature_flags WHERE id = $1",
 		id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.FeatureFlag{}, apperror.NotFound("флаг не найден")
+	}
+
 	if err != nil {
 		return domain.FeatureFlag{}, err
 	}
+
 	return flag, nil
 }
 
@@ -63,8 +79,15 @@ var createFeatureFlagQuery string
 
 func (repo *FlagRepo) Create(ctx context.Context, featureFlag *domain.FeatureFlag) (int, error) {
 	var featureFlagId int
-	err := repo.db.QueryRowContext(ctx, createFeatureFlagQuery, featureFlag.Name, featureFlag.Description, featureFlag.Status, featureFlag.Environment, featureFlag.OwnerUserId, featureFlag.OwnerTeamId).Scan(&featureFlagId)
+	err := repo.db.QueryRowContext(ctx, createFeatureFlagQuery, featureFlag.Name,
+		featureFlag.Description, featureFlag.Status, featureFlag.Environment,
+		featureFlag.OwnerUserId, featureFlag.OwnerTeamId).Scan(&featureFlagId)
+
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return 0, apperror.Conflict("флаг с таким именем уже существует")
+		}
 		return 0, err
 	}
 
@@ -75,8 +98,13 @@ func (repo *FlagRepo) Create(ctx context.Context, featureFlag *domain.FeatureFla
 var updateFeatureFlagQuery string
 
 func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error {
-	result, err := repo.db.ExecContext(ctx, updateFeatureFlagQuery, featureFlag.Name, featureFlag.Description, featureFlag.Status, featureFlag.Environment, flagId)
+	result, err := repo.db.ExecContext(ctx, updateFeatureFlagQuery, featureFlag.Name,
+		featureFlag.Description, featureFlag.Status, featureFlag.Environment, flagId)
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return apperror.Conflict("флаг с таким именем уже существует")
+		}
 		return err
 	}
 
@@ -86,7 +114,7 @@ func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFla
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("фич-флаг не найден")
+		return apperror.NotFound("фич-флаг не найден")
 	}
 
 	return nil
@@ -107,7 +135,7 @@ func (repo *FlagRepo) UpdateFlagStatusById(ctx context.Context, flagId int, feat
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("фич-флаг не найден")
+		return apperror.NotFound("фич-флаг не найден")
 	}
 
 	return nil
