@@ -27,7 +27,7 @@ func NewAuthHandler(s AuthService) *AuthHandler {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body LoginRequest true "Данные для входа"
+// @Param request body dto.LoginRequest true "Данные для входа"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req dto.LoginRequest
@@ -45,6 +45,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
 }
 
+// GetMe
+// @Summary Получить данные текущего пользователя
+// @Description Возвращает информацию о пользователе по токену из заголовка Authorization
+// @Tags auth
+// @Produce json
+// @Security ApiKeyAuth
+// @Router /me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
 	if !ok {
