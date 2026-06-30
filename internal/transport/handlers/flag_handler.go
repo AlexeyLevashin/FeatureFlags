@@ -67,6 +67,7 @@ func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
 // @Param search query string false "Поиск по имени"
 // @Param environment query string false "Фильтр по окружению (dev, staging, production)"
 // @Param status query string false "Фильтр по статусу (enabled, disabled)"
+// @Security ApiKeyAuth
 // @Router /flags [get]
 func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	var flags []dto.FlagResponse
@@ -86,6 +87,14 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(flags)
 }
 
+// GetFlagById
+// @Summary Получить фич-флаг по id
+// @Description Возвращает фич-флаг по его идентификатору
+// @Tags flags
+// @Produce json
+// @Param id path int true "ID флага"
+// @Security ApiKeyAuth
+// @Router /flags/{id} [get]
 func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 	var flag dto.FlagResponse
 	idStr := r.PathValue("id")
