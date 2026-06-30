@@ -19,7 +19,7 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
 	user := domain.User{}
 	err := r.db.Get(&user,
-		"SELECT * FROM users WHERE email = $1",
+		"SELECT id, email, password_hash, name, surname, team_id FROM users WHERE email = $1",
 		email)
 	if err != nil {
 		return domain.User{}, err
@@ -39,4 +39,15 @@ func (r *UserRepository) CheckExists(ctx context.Context, userId int) (bool, err
 	}
 
 	return exists, nil
+}
+
+func (r *UserRepository) FindById(userId int) (domain.User, error) {
+	user := domain.User{}
+	err := r.db.Get(&user,
+		"SELECT email, name, surname FROM users WHERE id = $1",
+		userId)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
 }
