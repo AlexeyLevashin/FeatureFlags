@@ -54,8 +54,8 @@ func main() {
 		r.Get("/flags", flagHandler.GetAllFlags)
 		r.Get("/flags/{id}", flagHandler.GetFlagById)
 		r.Post("/flags", flagHandler.CreateFlag)
-		//r.Put("/flags/{id}", flagHandler.UpdateFlag)
-		//r.Patch("/flags/{id}/status", flagHandler.UpdateFlagStatus)
+		r.Put("/flags/{id}", flagHandler.UpdateFlagById)
+		r.Patch("/flags/{id}/status", flagHandler.UpdateFlagStatusById)
 	})
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
