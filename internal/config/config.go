@@ -23,7 +23,7 @@ func LoadConfig() (*Config, error) {
 
 	err = cleanenv.ReadEnv(&cfg)
 	if err != nil {
-		fmt.Errorf("ошибка загрузки конфига: %w", err)
+		return nil, fmt.Errorf("ошибка загрузки конфига: %w", err)
 	}
 
 	return &cfg, nil
