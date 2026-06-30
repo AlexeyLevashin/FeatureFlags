@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
 	"context"
@@ -10,7 +11,7 @@ import (
 )
 
 type FlagService interface {
-	GetAll(filter domain.FlagFilter) ([]dto.FlagResponse, error)
+	GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error)
 	GetById(ctx context.Context, id int) (dto.FlagResponse, error)
 	Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error)
 	UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error
@@ -37,22 +38,23 @@ func NewFlagHandler(service FlagService) *FlagHandler {
 func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
 	var request dto.SaveFlagRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
 
 	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	flagId, err := h.service.Create(r.Context(), claims.Id, claims.TeamId, request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]int{"id": flagId})
 }
@@ -73,11 +75,14 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 		Environment: r.URL.Query().Get("environment"),
 		Status:      r.URL.Query().Get("status"),
 	}
-	flags, err := h.service.GetAll(filter)
+
+	flags, err := h.service.GetAll(r.Context(), filter)
 	if err != nil {
-		http.Error(w, "Ошибка при получении списка флагов", http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(flags)
 }
 
@@ -86,16 +91,16 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		http.Error(w,
-			"Ошибка при преобразовании id строки в int",
-			http.StatusInternalServerError)
+		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 	flag, err := h.service.GetById(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Ошибка при получении флага по id", http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(flag)
 }
 
@@ -113,24 +118,24 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
 
 	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	err := h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -151,24 +156,24 @@ func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Reques
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		http.Error(w, "Ошибка при преобразовании id строки в int", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
 
 	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		http.Error(w, "Ошибка авторизации: нет данных пользователя", http.StatusUnauthorized)
+		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	err := h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
 

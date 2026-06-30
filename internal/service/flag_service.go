@@ -1,16 +1,15 @@
 package service
 
 import (
+	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
 	"context"
-	"errors"
-	"fmt"
 	"time"
 )
 
 type FlagRepository interface {
-	GetAll(filter domain.FlagFilter) ([]domain.FeatureFlag, error)
+	GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlag, error)
 	GetById(ctx context.Context, id int) (domain.FeatureFlag, error)
 	Create(ctx context.Context, featureFlag *domain.FeatureFlag) (int, error)
 	UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error
@@ -39,8 +38,8 @@ func NewFlagService(f FlagRepository, u UserRepository, t TeamRepository) *FlagS
 	}
 }
 
-func (f FlagService) GetAll(filter domain.FlagFilter) ([]dto.FlagResponse, error) {
-	flags, err := f.flagRepo.GetAll(filter)
+func (f FlagService) GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error) {
+	flags, err := f.flagRepo.GetAll(ctx, filter)
 	if err != nil {
 		return []dto.FlagResponse{}, err
 	}
@@ -72,23 +71,30 @@ func toFlagResponse(flag domain.FeatureFlag) dto.FlagResponse {
 	}
 }
 
-func (f *FlagService) Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error) {
+func (f *FlagService) Create(ctx context.Context, ownerUserId int,
+	ownerTeamId int, request dto.SaveFlagRequest) (int, error) {
 	if !request.Status.IsValid() {
-		return 0, errors.New("недопустимый статус флага")
+		return 0, apperror.BadRequest("недопустимый статус флага")
 	}
 
 	if !request.Environment.IsValid() {
-		return 0, errors.New("недопустимое окружение флага")
+		return 0, apperror.BadRequest("недопустимое окружение флага")
 	}
 
 	checkUserExists, err := f.userRepo.CheckExists(ctx, ownerUserId)
-	if err != nil || !checkUserExists {
-		return 0, errors.New("пользователь не найден")
+	if err != nil {
+		return 0, err
+	}
+	if !checkUserExists {
+		return 0, apperror.NotFound("пользователь не найден")
 	}
 
 	checkTeamExists, err := f.teamRepo.CheckExists(ctx, ownerTeamId)
-	if err != nil || !checkTeamExists {
-		return 0, errors.New("команда не найдена")
+	if err != nil {
+		return 0, err
+	}
+	if !checkTeamExists {
+		return 0, apperror.NotFound("команда не найдена")
 	}
 
 	flagDb := saveFlagRequestToDomain(request)
@@ -96,7 +102,7 @@ func (f *FlagService) Create(ctx context.Context, ownerUserId int, ownerTeamId i
 	flagDb.OwnerTeamId = ownerTeamId
 	flagId, err := f.flagRepo.Create(ctx, flagDb)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка создания флага: %w", err)
+		return 0, err
 	}
 
 	return flagId, nil
@@ -111,51 +117,53 @@ func saveFlagRequestToDomain(request dto.SaveFlagRequest) *domain.FeatureFlag {
 	}
 }
 
-func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error {
+func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int, ownerUserId int,
+	ownerTeamId int, request dto.SaveFlagRequest) error {
 	if !request.Status.IsValid() {
-		return errors.New("недопустимый статус флага")
+		return apperror.BadRequest("недопустимый статус флага")
 	}
 
 	if !request.Environment.IsValid() {
-		return errors.New("недопустимое окружение флага")
+		return apperror.BadRequest("недопустимое окружение флага")
 	}
 
 	existingFlag, err := f.flagRepo.GetById(ctx, flagId)
 	if err != nil {
-		return errors.New("флаг не найден")
+		return err
 	}
 
 	if existingFlag.OwnerTeamId != ownerTeamId {
-		return errors.New("редактирование флагов других команд запрещено")
+		return apperror.Forbidden("редактирование флагов других команд запрещено")
 	}
 
 	flagDb := saveFlagRequestToDomain(request)
 
 	err = f.flagRepo.UpdateFlagById(ctx, flagId, flagDb)
 	if err != nil {
-		return fmt.Errorf("ошибка редактирования флага: %w", err)
+		return err
 	}
 
 	return nil
 }
 
-func (f *FlagService) UpdateFlagStatusById(ctx context.Context, flagId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error {
+func (f *FlagService) UpdateFlagStatusById(ctx context.Context, flagId int,
+	ownerTeamId int, request dto.UpdateFlagStatusRequest) error {
 	if !request.Status.IsValid() {
-		return errors.New("недопустимый статус фич флага")
+		return apperror.BadRequest("недопустимый статус фич флага")
 	}
 
 	existingFlag, err := f.flagRepo.GetById(ctx, flagId)
 	if err != nil {
-		return errors.New("флаг не найден")
+		return err
 	}
 
 	if existingFlag.OwnerTeamId != ownerTeamId {
-		return errors.New("редактирование статуса фич флага других команд запрещено")
+		return apperror.Forbidden("редактирование статуса фич флага других команд запрещено")
 	}
 
 	err = f.flagRepo.UpdateFlagStatusById(ctx, flagId, request.Status)
 	if err != nil {
-		return fmt.Errorf("ошибка редактирования флага: %w", err)
+		return err
 	}
 
 	return nil

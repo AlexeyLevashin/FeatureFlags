@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
+	"context"
 	"encoding/json"
 	"net/http"
 )
 
 type AuthService interface {
-	Login(email string, password string) (string, error)
-	GetMe(id int) (dto.GetMeResponse, error)
+	Login(ctx context.Context, email string, password string) (string, error)
+	GetMe(ctx context.Context, id int) (dto.GetMeResponse, error)
 }
 type AuthHandler struct {
 	authService AuthService
@@ -30,28 +32,31 @@ func NewAuthHandler(s AuthService) *AuthHandler {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
-	tokenString, err := h.authService.Login(req.Email, req.Password)
+
+	tokenString, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
+		apperror.HandleError(w, err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
 }
 
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		apperror.HandleError(w, apperror.Unauthorized("unauthorized"))
 		return
 	}
 	userId := claims.Id
-	user, err := h.authService.GetMe(userId)
+	user, err := h.authService.GetMe(r.Context(), userId)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		apperror.HandleError(w, err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(user)
 }
