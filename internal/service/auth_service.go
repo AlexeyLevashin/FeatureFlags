@@ -80,5 +80,6 @@ func toUserResponse(user domain.User) dto.GetMeResponse {
 		Email:   user.Email,
 		Name:    user.Name,
 		Surname: user.Surname,
+		TeamId:  user.TeamId,
 	}
 }
