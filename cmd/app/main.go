@@ -4,6 +4,7 @@ import (
 	"FeatureFlags/internal/config"
 	"FeatureFlags/internal/repository"
 	"FeatureFlags/internal/service"
+	"FeatureFlags/internal/transport"
 	"FeatureFlags/internal/transport/handlers"
 	"FeatureFlags/pkg/logger"
 	pkgPostgres "FeatureFlags/pkg/postgres"
@@ -11,9 +12,6 @@ import (
 	"os"
 
 	_ "FeatureFlags/docs"
-
-	"github.com/go-chi/chi/v5"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // @title Feature Flags API
@@ -51,22 +49,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	flagHandler := handlers.NewFlagHandler(flagService)
 
-	r := chi.NewRouter()
-
-	r.Post("/auth/login", authHandler.Login)
-
-	r.Group(func(r chi.Router) {
-		r.Use(handlers.AuthMiddleware(cfg.JWTSecret))
-
-		r.Get("/me", authHandler.GetMe)
-		r.Get("/flags", flagHandler.GetAllFlags)
-		r.Get("/flags/{id}", flagHandler.GetFlagById)
-		r.Post("/flags", flagHandler.CreateFlag)
-		r.Put("/flags/{id}", flagHandler.UpdateFlagById)
-		r.Patch("/flags/{id}/status", flagHandler.UpdateFlagStatusById)
-	})
-
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
+	r := transport.NewRouter(authHandler, flagHandler, cfg.JWTSecret)
 
 	log.Info("Запуск Feature Flags API", "port", 8080)
 	log.Info("Swagger доступен", "url", "http://localhost:8080/swagger/index.html")
