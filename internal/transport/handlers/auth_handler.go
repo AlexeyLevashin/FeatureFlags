@@ -4,7 +4,6 @@ import (
 	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
-	"FeatureFlags/internal/validation"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -31,14 +30,9 @@ func NewAuthHandler(s AuthService) *AuthHandler {
 // @Param request body dto.LoginRequest true "Данные для входа"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req dto.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
-		return
-	}
-
-	if err := validation.Validate.Struct(req); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("Некорректные данные"))
+	req, err := ReadAndValidate[dto.LoginRequest](r)
+	if err != nil {
+		apperror.HandleError(w, err)
 		return
 	}
 

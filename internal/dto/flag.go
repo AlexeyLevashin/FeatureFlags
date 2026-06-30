@@ -14,12 +14,12 @@ type FlagResponse struct {
 }
 
 type SaveFlagRequest struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Status      domain.FlagStatus      `json:"status"`
-	Environment domain.EnvironmentType `json:"environment"`
+	Name        string                 `json:"name" validate:"required,min=3,max=100"`
+	Description string                 `json:"description" validate:"required,max=500"`
+	Status      domain.FlagStatus      `json:"status" validate:"required"`
+	Environment domain.EnvironmentType `json:"environment" validate:"required"`
 }
 
 type UpdateFlagStatusRequest struct {
-	Status domain.FlagStatus `json:"status"`
+	Status domain.FlagStatus `json:"status" validate:"required"`
 }
