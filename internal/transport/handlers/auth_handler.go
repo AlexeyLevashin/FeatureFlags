@@ -1,21 +1,15 @@
 package handlers
 
 import (
+	"FeatureFlags/internal/domain"
+	"FeatureFlags/internal/dto"
 	"encoding/json"
 	"net/http"
 )
 
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginResponse struct {
-	Token string `json:"token"`
-}
-
 type AuthService interface {
 	Login(email string, password string) (string, error)
+	GetMe(id int) (dto.GetMeResponse, error)
 }
 type AuthHandler struct {
 	authService AuthService
@@ -34,7 +28,7 @@ func NewAuthHandler(s AuthService) *AuthHandler {
 // @Param request body LoginRequest true "Данные для входа"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
@@ -44,5 +38,20 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
 		return
 	}
-	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
+	json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
+}
+
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userId := claims.Id
+	user, err := h.authService.GetMe(userId)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(user)
 }

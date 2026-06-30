@@ -2,6 +2,7 @@ package service
 
 import (
 	"FeatureFlags/internal/domain"
+	"FeatureFlags/internal/dto"
 	"errors"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 type AuthRepository interface {
 	FindByEmail(email string) (domain.User, error)
+	FindById(id int) (domain.User, error)
 }
 
 type AuthService struct {
@@ -25,11 +27,11 @@ func NewAuthService(repo AuthRepository, jwtSecret string) *AuthService {
 func (s *AuthService) Login(email string, password string) (string, error) {
 	user, err := s.repo.FindByEmail(email)
 	if err != nil {
-		return "Неверный email или пароль!", err
+		return "", err
 	}
 	err = checkPassword(user, password)
 	if err != nil {
-		return "Неверный email или пароль!", err
+		return "", err
 	}
 	token, err := generateToken(user, s.jwtSecret)
 	if err != nil {
@@ -61,4 +63,21 @@ func checkPassword(user domain.User, password string) error {
 		return errors.New("Неверный пароль")
 	}
 	return nil
+}
+
+func (s *AuthService) GetMe(id int) (dto.GetMeResponse, error) {
+	user, err := s.repo.FindById(id)
+	if err != nil {
+		return dto.GetMeResponse{}, err
+	}
+	userResponse := toUserResponse(user)
+	return userResponse, nil
+}
+
+func toUserResponse(user domain.User) dto.GetMeResponse {
+	return dto.GetMeResponse{
+		Email:   user.Email,
+		Name:    user.Name,
+		Surname: user.Surname,
+	}
 }
