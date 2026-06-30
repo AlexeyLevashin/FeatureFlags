@@ -38,7 +38,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
 		return
 	}
-	json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
+	_ = json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
 }
 
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
@@ -53,5 +53,5 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }
