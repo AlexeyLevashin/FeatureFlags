@@ -5,9 +5,10 @@ import (
 	"FeatureFlags/internal/repository"
 	"FeatureFlags/internal/service"
 	"FeatureFlags/internal/transport/handlers"
+	"FeatureFlags/pkg/logger"
 	pkgPostgres "FeatureFlags/pkg/postgres"
-	"log"
 	"net/http"
+	"os"
 
 	_ "FeatureFlags/docs"
 
@@ -22,16 +23,23 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	cfg := config.LoadConfig()
+	log := logger.Setup()
+	log.Info("Инициализация приложения...")
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Error("Критическая ошибка при загрузке конфигурации", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := pkgPostgres.New(cfg.DatabaseDSN)
-
 	if err != nil {
-		log.Fatalf("Не удалось запустить БД: %v", err)
+		log.Error("Не удалось запустить БД", "error", err)
+		os.Exit(1)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("Ошибка при закрытии соединения с БД: %v", err)
+			log.Error("Ошибка при закрытии соединения с БД", "error", err)
 		}
 	}()
 
@@ -60,10 +68,11 @@ func main() {
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	log.Println("Запуск Feature Flags API на порту 8080...")
-	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
+	log.Info("Запуск Feature Flags API", "port", 8080)
+	log.Info("Swagger доступен", "url", "http://localhost:8080/swagger/index.html")
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatalf("Критическая ошибка сервера: %v", err)
+		log.Error("Критическая ошибка сервера:", "error", err)
+		os.Exit(1)
 	}
 }

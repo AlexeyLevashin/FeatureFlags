@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -13,18 +13,18 @@ type Config struct {
 	DatabaseDSN string `env:"DATABASE_URL" env-required:"true"`
 }
 
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	var cfg Config
 
 	err := cleanenv.ReadConfig(".env", &cfg)
 	if err == nil {
-		return &cfg
+		return &cfg, nil
 	}
 
 	err = cleanenv.ReadEnv(&cfg)
 	if err != nil {
-		log.Fatalf("Критическая ошибка загрузки конфига: %v", err)
+		return nil, fmt.Errorf("ошибка загрузки конфига: %w", err)
 	}
 
-	return &cfg
+	return &cfg, nil
 }
