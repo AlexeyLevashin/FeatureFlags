@@ -14,7 +14,7 @@ type FlagService interface {
 	GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error)
 	GetById(ctx context.Context, id int) (dto.FlagResponse, error)
 	Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error)
-	UpdateFlagById(ctx context.Context, flagId int, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) error
+	UpdateFlagById(ctx context.Context, flagId int, ownerTeamId int, request dto.SaveFlagRequest) error
 	UpdateFlagStatusById(ctx context.Context, flagId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error
 }
 
@@ -142,7 +142,7 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
+	err := h.service.UpdateFlagById(r.Context(), id, claims.TeamId, request)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
