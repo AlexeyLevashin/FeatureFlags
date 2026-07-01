@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"context"
+	"database/sql"
 	"time"
 )
 
@@ -42,10 +42,20 @@ type FeatureFlag struct {
 	OwnerUserId int             `json:"ownerUserId" db:"owner_user_id"`
 	OwnerTeamId int             `json:"ownerTeamId" db:"owner_team_id"`
 	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
-	UpdatedAt   time.Time       `json:"updatedAt" db:"updated_at"`
 }
 
-type FlagRepository interface {
-	Create(ctx context.Context, flag *FeatureFlag) error
-	GetByID(ctx context.Context, id string) (*FeatureFlag, error)
+type FeatureFlagDetails struct {
+	Id             int             `db:"id"`
+	Name           string          `db:"name"`
+	Description    string          `db:"description"`
+	Environment    EnvironmentType `db:"environment"`
+	Status         FlagStatus      `db:"status"`
+	OwnerTeam      string          `db:"owner_team"`
+	CreatorName    string          `db:"creator_name"`
+	CreatorSurname string          `db:"creator_surname"`
+	CreatedAt      time.Time       `db:"created_at"`
+
+	UpdaterName    sql.NullString `db:"updater_name"`
+	UpdaterSurname sql.NullString `db:"updater_surname"`
+	UpdatedAt      sql.NullTime   `db:"updated_at"`
 }

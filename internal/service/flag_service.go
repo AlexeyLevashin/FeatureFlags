@@ -9,11 +9,12 @@ import (
 )
 
 type FlagRepository interface {
-	GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlag, error)
+	GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlagDetails, error)
 	GetById(ctx context.Context, id int) (domain.FeatureFlag, error)
+	GetFlagDetailsById(ctx context.Context, id int) (domain.FeatureFlagDetails, error)
 	Create(ctx context.Context, featureFlag *domain.FeatureFlag) (int, error)
-	UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error
-	UpdateFlagStatusById(ctx context.Context, flagId int, featureFlag domain.FlagStatus) error
+	UpdateFlagById(ctx context.Context, flagId int, userId int, featureFlag *domain.FeatureFlag) error
+	UpdateFlagStatusById(ctx context.Context, flagId int, userId int, featureFlag domain.FlagStatus) error
 }
 
 type UserRepository interface {
@@ -43,31 +44,48 @@ func (f FlagService) GetAll(ctx context.Context, filter domain.FlagFilter) ([]dt
 	if err != nil {
 		return []dto.FlagResponse{}, err
 	}
+
 	result := make([]dto.FlagResponse, len(flags))
 	for i, flag := range flags {
 		result[i] = toFlagResponse(flag)
 	}
+
 	return result, nil
 }
 
-func (f FlagService) GetById(ctx context.Context, id int) (dto.FlagResponse, error) {
-	flag, err := f.flagRepo.GetById(ctx, id)
+func (f FlagService) GetFlagDetailsById(ctx context.Context, id int) (dto.FlagResponse, error) {
+	flag, err := f.flagRepo.GetFlagDetailsById(ctx, id)
 	if err != nil {
 		return dto.FlagResponse{}, err
 	}
 	return toFlagResponse(flag), nil
 }
 
-func toFlagResponse(flag domain.FeatureFlag) dto.FlagResponse {
+func toFlagResponse(flag domain.FeatureFlagDetails) dto.FlagResponse {
+	var updatedBy *string
+	var updatedAt *string
+
+	if flag.UpdaterName.Valid {
+		name := flag.UpdaterName.String + " " + flag.UpdaterSurname.String
+		timeStr := flag.UpdatedAt.Time.Format(time.RFC3339)
+
+		updatedBy = &name
+		updatedAt = &timeStr
+	}
+
 	return dto.FlagResponse{
 		Id:          flag.Id,
 		Name:        flag.Name,
 		Description: flag.Description,
 		Status:      string(flag.Status),
 		Environment: string(flag.Environment),
-		OwnerUserId: flag.OwnerUserId,
-		OwnerTeamId: flag.OwnerTeamId,
-		UpdatedAt:   flag.UpdatedAt.Format(time.RFC3339),
+
+		Owner:     flag.OwnerTeam,
+		CreatedBy: flag.CreatorName + " " + flag.CreatorSurname,
+		CreatedAt: flag.CreatedAt.Format(time.RFC3339),
+
+		UpdatedBy: updatedBy,
+		UpdatedAt: updatedAt,
 	}
 }
 
@@ -117,7 +135,7 @@ func saveFlagRequestToDomain(request dto.SaveFlagRequest) *domain.FeatureFlag {
 	}
 }
 
-func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int,
+func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int, userId,
 	ownerTeamId int, request dto.SaveFlagRequest) error {
 	if !request.Status.IsValid() {
 		return apperror.BadRequest("недопустимый статус флага")
@@ -138,7 +156,7 @@ func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int,
 
 	flagDb := saveFlagRequestToDomain(request)
 
-	err = f.flagRepo.UpdateFlagById(ctx, flagId, flagDb)
+	err = f.flagRepo.UpdateFlagById(ctx, flagId, userId, flagDb)
 	if err != nil {
 		return err
 	}
@@ -146,7 +164,7 @@ func (f *FlagService) UpdateFlagById(ctx context.Context, flagId int,
 	return nil
 }
 
-func (f *FlagService) UpdateFlagStatusById(ctx context.Context, flagId int,
+func (f *FlagService) UpdateFlagStatusById(ctx context.Context, flagId int, userId int,
 	ownerTeamId int, request dto.UpdateFlagStatusRequest) error {
 	if !request.Status.IsValid() {
 		return apperror.BadRequest("недопустимый статус фич флага")
@@ -161,7 +179,7 @@ func (f *FlagService) UpdateFlagStatusById(ctx context.Context, flagId int,
 		return apperror.Forbidden("редактирование статуса фич флага других команд запрещено")
 	}
 
-	err = f.flagRepo.UpdateFlagStatusById(ctx, flagId, request.Status)
+	err = f.flagRepo.UpdateFlagStatusById(ctx, flagId, userId, request.Status)
 	if err != nil {
 		return err
 	}
