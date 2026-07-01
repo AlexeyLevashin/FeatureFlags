@@ -36,9 +36,9 @@ func NewFlagHandler(service FlagService) *FlagHandler {
 // @Security ApiKeyAuth
 // @Router /flags [post]
 func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
-	var request dto.SaveFlagRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
+	request, err := ReadAndValidate[dto.SaveFlagRequest](r)
+	if err != nil {
+		apperror.HandleError(w, err)
 		return
 	}
 
@@ -123,16 +123,16 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /flags/{id} [put]
 func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
-	var request dto.SaveFlagRequest
+	request, err := ReadAndValidate[dto.SaveFlagRequest](r)
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
 		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
-		return
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
 
@@ -142,7 +142,7 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.UpdateFlagById(r.Context(), id, claims.TeamId, request)
+	err = h.service.UpdateFlagById(r.Context(), id, claims.TeamId, request)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -161,16 +161,16 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /flags/{id}/status [patch]
 func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Request) {
-	var request dto.UpdateFlagStatusRequest
+	request, err := ReadAndValidate[dto.UpdateFlagStatusRequest](r)
+	if err != nil {
+		apperror.HandleError(w, err)
+		return
+	}
+
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
 		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
-		return
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		apperror.HandleError(w, apperror.BadRequest("Неверный формат JSON"))
 		return
 	}
 
@@ -180,7 +180,7 @@ func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err := h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
+	err = h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
