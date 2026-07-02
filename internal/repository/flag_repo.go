@@ -26,27 +26,27 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 //go:embed queries/feature_flag/get_all_flags_base.sql
 var getAllFlagsQuery string
 
-func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlag, error) {
-	flags := []domain.FeatureFlag{}
+func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlagDetails, error) {
+	flags := []domain.FeatureFlagDetails{}
 
 	query := getAllFlagsQuery
 	args := []interface{}{}
 	i := 1
 
 	if filter.Search != "" {
-		query += fmt.Sprintf(" AND name ILIKE $%d", i)
+		query += fmt.Sprintf(" AND f.name ILIKE $%d", i)
 		args = append(args, "%"+filter.Search+"%")
 		i++
 	}
 
 	if filter.Environment != "" {
-		query += fmt.Sprintf(" AND environment = $%d", i)
+		query += fmt.Sprintf(" AND f.environment = $%d", i)
 		args = append(args, filter.Environment)
 		i++
 	}
 
 	if filter.Status != "" {
-		query += fmt.Sprintf(" AND status = $%d", i)
+		query += fmt.Sprintf(" AND f.status = $%d", i)
 		args = append(args, filter.Status)
 		i++
 	}
@@ -54,10 +54,28 @@ func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]do
 	err := repo.db.SelectContext(ctx, &flags, query, args...)
 
 	if err != nil {
-		return []domain.FeatureFlag{}, err
+		return []domain.FeatureFlagDetails{}, err
 	}
 
 	return flags, nil
+}
+
+//go:embed queries/feature_flag/get_feature_flag_details_by_id.sql
+var getFlagDetailsByIdQuery string
+
+func (repo FlagRepo) GetFlagDetailsById(ctx context.Context, id int) (domain.FeatureFlagDetails, error) {
+	flag := domain.FeatureFlagDetails{}
+	err := repo.db.GetContext(ctx, &flag, getFlagDetailsByIdQuery, id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.FeatureFlagDetails{}, apperror.NotFound("флаг не найден")
+	}
+
+	if err != nil {
+		return domain.FeatureFlagDetails{}, err
+	}
+
+	return flag, nil
 }
 
 //go:embed queries/feature_flag/get_flag_by_id.sql
@@ -101,8 +119,18 @@ func (repo *FlagRepo) Create(ctx context.Context, featureFlag *domain.FeatureFla
 //go:embed queries/feature_flag/update_feature_flag.sql
 var updateFeatureFlagQuery string
 
-func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFlag *domain.FeatureFlag) error {
-	result, err := repo.db.ExecContext(ctx, updateFeatureFlagQuery, featureFlag.Name,
+//go:embed queries/feature_flag_updates/insert_flag_update.sql
+var insertFlagUpdateLogQuery string
+
+func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, userId int, featureFlag *domain.FeatureFlag) error {
+	tx, err := repo.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, updateFeatureFlagQuery, featureFlag.Name,
 		featureFlag.Description, featureFlag.Status, featureFlag.Environment, flagId)
 	if err != nil {
 		var pqErr *pq.Error
@@ -121,14 +149,29 @@ func (repo *FlagRepo) UpdateFlagById(ctx context.Context, flagId int, featureFla
 		return apperror.NotFound("фич-флаг не найден")
 	}
 
-	return nil
+	_, err = tx.ExecContext(ctx,
+		insertFlagUpdateLogQuery,
+		userId, flagId)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 //go:embed queries/feature_flag/update_feature_flag_status.sql
 var updateFeatureFlagStatusQuery string
 
-func (repo *FlagRepo) UpdateFlagStatusById(ctx context.Context, flagId int, featureFlag domain.FlagStatus) error {
-	result, err := repo.db.ExecContext(ctx, updateFeatureFlagStatusQuery, featureFlag, flagId)
+func (repo *FlagRepo) UpdateFlagStatusById(ctx context.Context, flagId int, userId int, featureFlagStatus domain.FlagStatus) error {
+
+	tx, err := repo.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, updateFeatureFlagStatusQuery, featureFlagStatus, flagId)
 	if err != nil {
 		return err
 	}
@@ -142,5 +185,12 @@ func (repo *FlagRepo) UpdateFlagStatusById(ctx context.Context, flagId int, feat
 		return apperror.NotFound("фич-флаг не найден")
 	}
 
-	return nil
+	_, err = tx.ExecContext(ctx,
+		insertFlagUpdateLogQuery,
+		userId, flagId)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

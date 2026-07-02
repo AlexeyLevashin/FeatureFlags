@@ -22,7 +22,7 @@ func NewRouter(
 		r.Get("/me", authHandler.GetMe)
 
 		r.Get("/flags", flagHandler.GetAllFlags)
-		r.Get("/flags/{id}", flagHandler.GetFlagById)
+		r.Get("/flags/{id}", flagHandler.GetFlagDetailsById)
 		r.Post("/flags", flagHandler.CreateFlag)
 		r.Put("/flags/{id}", flagHandler.UpdateFlagById)
 		r.Patch("/flags/{id}/status", flagHandler.UpdateFlagStatusById)

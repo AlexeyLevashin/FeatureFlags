@@ -12,10 +12,10 @@ import (
 
 type FlagService interface {
 	GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error)
-	GetById(ctx context.Context, id int) (dto.FlagResponse, error)
+	GetFlagDetailsById(ctx context.Context, id int) (dto.FlagResponse, error)
 	Create(ctx context.Context, ownerUserId int, ownerTeamId int, request dto.SaveFlagRequest) (int, error)
-	UpdateFlagById(ctx context.Context, flagId int, ownerTeamId int, request dto.SaveFlagRequest) error
-	UpdateFlagStatusById(ctx context.Context, flagId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error
+	UpdateFlagById(ctx context.Context, flagId int, userId, ownerTeamId int, request dto.SaveFlagRequest) error
+	UpdateFlagStatusById(ctx context.Context, flagId int, userId int, ownerTeamId int, request dto.UpdateFlagStatusRequest) error
 }
 
 type FlagHandler struct {
@@ -87,7 +87,7 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(flags)
 }
 
-// GetFlagById
+// GetFlagDetailsById
 // @Summary Получить фич-флаг по id
 // @Description Возвращает фич-флаг по его идентификатору
 // @Tags flags
@@ -95,7 +95,7 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "ID флага"
 // @Security ApiKeyAuth
 // @Router /flags/{id} [get]
-func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
+func (h *FlagHandler) GetFlagDetailsById(w http.ResponseWriter, r *http.Request) {
 	var flag dto.FlagResponse
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
@@ -103,7 +103,7 @@ func (h *FlagHandler) GetFlagById(w http.ResponseWriter, r *http.Request) {
 		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
-	flag, err := h.service.GetById(r.Context(), id)
+	flag, err := h.service.GetFlagDetailsById(r.Context(), id)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -142,7 +142,7 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.UpdateFlagById(r.Context(), id, claims.TeamId, request)
+	err = h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
@@ -180,7 +180,7 @@ func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.service.UpdateFlagStatusById(r.Context(), id, claims.TeamId, request)
+	err = h.service.UpdateFlagStatusById(r.Context(), id, claims.Id, claims.TeamId, request)
 	if err != nil {
 		apperror.HandleError(w, err)
 		return
