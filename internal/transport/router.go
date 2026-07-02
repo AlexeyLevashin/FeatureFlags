@@ -3,6 +3,8 @@ package transport
 import (
 	"FeatureFlags/internal/transport/handlers"
 
+	"FeatureFlags/internal/transport/middleware"
+
 	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
@@ -13,6 +15,7 @@ func NewRouter(
 	jwtSecret string,
 ) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(middleware.CorsMiddleware)
 
 	r.Post("/auth/login", authHandler.Login)
 
