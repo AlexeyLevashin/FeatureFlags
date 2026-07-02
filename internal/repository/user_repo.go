@@ -28,9 +28,11 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, apperror.NotFound("Неверный email или пароль")
 	}
+
 	if err != nil {
 		return domain.User{}, err
 	}
+
 	return user, nil
 }
 
@@ -58,8 +60,10 @@ func (r *UserRepository) FindById(ctx context.Context, userId int) (domain.User,
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, apperror.NotFound("пользователь не найден")
 	}
+
 	if err != nil {
 		return domain.User{}, err
 	}
+
 	return user, nil
 }

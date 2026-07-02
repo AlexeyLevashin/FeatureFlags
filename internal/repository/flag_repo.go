@@ -27,10 +27,10 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 var getAllFlagsQuery string
 
 func (repo *FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlagDetails, error) {
-	flags := []domain.FeatureFlagDetails{}
+	var flags []domain.FeatureFlagDetails
 
 	query := getAllFlagsQuery
-	args := []interface{}{}
+	var args []interface{}
 	i := 1
 
 	if filter.Search != "" {

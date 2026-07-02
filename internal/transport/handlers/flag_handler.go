@@ -4,8 +4,9 @@ import (
 	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
+	"FeatureFlags/internal/transport/httputil"
+	"FeatureFlags/internal/transport/middleware"
 	"context"
-	"encoding/json"
 	"net/http"
 	"strconv"
 )
@@ -36,27 +37,25 @@ func NewFlagHandler(service FlagService) *FlagHandler {
 // @Security ApiKeyAuth
 // @Router /flags [post]
 func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
-	request, err := ReadAndValidate[dto.SaveFlagRequest](r)
+	request, err := httputil.ReadAndValidate[dto.SaveFlagRequest](r)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
+		httputil.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	flagId, err := h.service.Create(r.Context(), claims.Id, claims.TeamId, request)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]int{"id": flagId})
+	httputil.WriteJSON(w, http.StatusCreated, map[string]int{"id": flagId})
 }
 
 // GetAllFlags
@@ -70,7 +69,6 @@ func (h *FlagHandler) CreateFlag(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /flags [get]
 func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
-	var flags []dto.FlagResponse
 	filter := domain.FlagFilter{
 		Search:      r.URL.Query().Get("search"),
 		Environment: r.URL.Query().Get("environment"),
@@ -79,12 +77,11 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 
 	flags, err := h.service.GetAll(r.Context(), filter)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(flags)
+	httputil.WriteJSON(w, http.StatusOK, flags)
 }
 
 // GetFlagDetailsById
@@ -96,21 +93,19 @@ func (h *FlagHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /flags/{id} [get]
 func (h *FlagHandler) GetFlagDetailsById(w http.ResponseWriter, r *http.Request) {
-	var flag dto.FlagResponse
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
+		httputil.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 	flag, err := h.service.GetFlagDetailsById(r.Context(), id)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(flag)
+	httputil.WriteJSON(w, http.StatusOK, flag)
 }
 
 // UpdateFlagById Update обновляет поля фича-флага
@@ -123,32 +118,32 @@ func (h *FlagHandler) GetFlagDetailsById(w http.ResponseWriter, r *http.Request)
 // @Security ApiKeyAuth
 // @Router /flags/{id} [put]
 func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
-	request, err := ReadAndValidate[dto.SaveFlagRequest](r)
+	request, err := httputil.ReadAndValidate[dto.SaveFlagRequest](r)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
+		httputil.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 
-	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
+		httputil.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	err = h.service.UpdateFlagById(r.Context(), id, claims.Id, claims.TeamId, request)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	httputil.WriteJSON(w, http.StatusNoContent, nil)
 }
 
 // UpdateFlagStatusById UpdateFlagStatus обновляет статус фича-флага
@@ -161,30 +156,30 @@ func (h *FlagHandler) UpdateFlagById(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /flags/{id}/status [patch]
 func (h *FlagHandler) UpdateFlagStatusById(w http.ResponseWriter, r *http.Request) {
-	request, err := ReadAndValidate[dto.UpdateFlagStatusRequest](r)
+	request, err := httputil.ReadAndValidate[dto.UpdateFlagStatusRequest](r)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
 	idStr := r.PathValue("id")
 	id, er := strconv.Atoi(idStr)
 	if er != nil {
-		apperror.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
+		httputil.HandleError(w, apperror.BadRequest("Ошибка при преобразовании id строки в int"))
 		return
 	}
 
-	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		apperror.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
+		httputil.HandleError(w, apperror.Unauthorized("Ошибка авторизации: нет данных пользователя"))
 		return
 	}
 
 	err = h.service.UpdateFlagStatusById(r.Context(), id, claims.Id, claims.TeamId, request)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	httputil.WriteJSON(w, http.StatusNoContent, nil)
 }

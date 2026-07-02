@@ -1,8 +1,9 @@
-package handlers
+package middleware
 
 import (
 	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
+	"FeatureFlags/internal/transport/httputil"
 	"context"
 	"net/http"
 	"strings"
@@ -24,7 +25,7 @@ func AuthMiddleware(secretKey string) func(http.Handler) http.Handler {
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			if token == "" {
-				apperror.HandleError(w, apperror.Unauthorized("Токен не передан"))
+				httputil.HandleError(w, apperror.Unauthorized("Токен не передан"))
 				return
 			}
 
@@ -33,13 +34,13 @@ func AuthMiddleware(secretKey string) func(http.Handler) http.Handler {
 			})
 
 			if err != nil || !parsedToken.Valid {
-				apperror.HandleError(w, apperror.Unauthorized("Невалидный токен"))
+				httputil.HandleError(w, apperror.Unauthorized("Невалидный токен"))
 				return
 			}
 
 			claims, ok := parsedToken.Claims.(*domain.MyClaims)
 			if !ok {
-				apperror.HandleError(w, apperror.Unauthorized("Невалидный токен"))
+				httputil.HandleError(w, apperror.Unauthorized("Невалидный токен"))
 				return
 			}
 
