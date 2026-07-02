@@ -20,7 +20,7 @@ func NewRouter(
 	r.Post("/auth/login", authHandler.Login)
 
 	r.Group(func(r chi.Router) {
-		r.Use(handlers.AuthMiddleware(jwtSecret))
+		r.Use(middleware.AuthMiddleware(jwtSecret))
 
 		r.Get("/me", authHandler.GetMe)
 

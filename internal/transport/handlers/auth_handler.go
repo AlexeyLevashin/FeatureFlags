@@ -4,8 +4,9 @@ import (
 	"FeatureFlags/internal/apperror"
 	"FeatureFlags/internal/domain"
 	"FeatureFlags/internal/dto"
+	"FeatureFlags/internal/transport/httputil"
+	"FeatureFlags/internal/transport/middleware"
 	"context"
-	"encoding/json"
 	"net/http"
 )
 
@@ -30,20 +31,19 @@ func NewAuthHandler(s AuthService) *AuthHandler {
 // @Param request body dto.LoginRequest true "Данные для входа"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	req, err := ReadAndValidate[dto.LoginRequest](r)
+	req, err := httputil.ReadAndValidate[dto.LoginRequest](r)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
 	tokenString, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(dto.LoginResponse{Token: tokenString})
+	httputil.WriteJSON(w, http.StatusOK, dto.LoginResponse{Token: tokenString})
 }
 
 // GetMe
@@ -54,18 +54,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value(ClaimsKey).(*domain.MyClaims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey).(*domain.MyClaims)
 	if !ok {
-		apperror.HandleError(w, apperror.Unauthorized("unauthorized"))
+		httputil.HandleError(w, apperror.Unauthorized("unauthorized"))
 		return
 	}
 
 	userId := claims.Id
 	user, err := h.authService.GetMe(r.Context(), userId)
 	if err != nil {
-		apperror.HandleError(w, err)
+		httputil.HandleError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(user)
+
+	httputil.WriteJSON(w, http.StatusOK, user)
 }

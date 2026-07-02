@@ -39,7 +39,7 @@ func NewFlagService(f FlagRepository, u UserRepository, t TeamRepository) *FlagS
 	}
 }
 
-func (f FlagService) GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error) {
+func (f *FlagService) GetAll(ctx context.Context, filter domain.FlagFilter) ([]dto.FlagResponse, error) {
 	flags, err := f.flagRepo.GetAll(ctx, filter)
 	if err != nil {
 		return []dto.FlagResponse{}, err
@@ -53,7 +53,7 @@ func (f FlagService) GetAll(ctx context.Context, filter domain.FlagFilter) ([]dt
 	return result, nil
 }
 
-func (f FlagService) GetFlagDetailsById(ctx context.Context, id int) (dto.FlagResponse, error) {
+func (f *FlagService) GetFlagDetailsById(ctx context.Context, id int) (dto.FlagResponse, error) {
 	flag, err := f.flagRepo.GetFlagDetailsById(ctx, id)
 	if err != nil {
 		return dto.FlagResponse{}, err
