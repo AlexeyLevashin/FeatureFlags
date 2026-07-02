@@ -26,7 +26,7 @@ func NewFlagRepository(db *sqlx.DB) *FlagRepo {
 //go:embed queries/feature_flag/get_all_flags_base.sql
 var getAllFlagsQuery string
 
-func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlagDetails, error) {
+func (repo *FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]domain.FeatureFlagDetails, error) {
 	flags := []domain.FeatureFlagDetails{}
 
 	query := getAllFlagsQuery
@@ -63,7 +63,7 @@ func (repo FlagRepo) GetAll(ctx context.Context, filter domain.FlagFilter) ([]do
 //go:embed queries/feature_flag/get_feature_flag_details_by_id.sql
 var getFlagDetailsByIdQuery string
 
-func (repo FlagRepo) GetFlagDetailsById(ctx context.Context, id int) (domain.FeatureFlagDetails, error) {
+func (repo *FlagRepo) GetFlagDetailsById(ctx context.Context, id int) (domain.FeatureFlagDetails, error) {
 	flag := domain.FeatureFlagDetails{}
 	err := repo.db.GetContext(ctx, &flag, getFlagDetailsByIdQuery, id)
 
@@ -81,7 +81,7 @@ func (repo FlagRepo) GetFlagDetailsById(ctx context.Context, id int) (domain.Fea
 //go:embed queries/feature_flag/get_flag_by_id.sql
 var getFlagByIdQuery string
 
-func (repo FlagRepo) GetById(ctx context.Context, id int) (domain.FeatureFlag, error) {
+func (repo *FlagRepo) GetById(ctx context.Context, id int) (domain.FeatureFlag, error) {
 	flag := domain.FeatureFlag{}
 	err := repo.db.GetContext(ctx, &flag, getFlagByIdQuery, id)
 
